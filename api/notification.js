@@ -11,42 +11,43 @@ router.post('/create', function (req,res) {
   var catalogueTagged = req.body.catalogueTagged;
   var message = req.body.notificationMessage;
   Preferences
-    .find({
-      tags:{
-        $in:tags
-      }
-    })
-    .select('userId')
-    .exec(function (err,prefs) {
-      async.eachSeries(prefs,function (pref,callback) {
-        var notification = new Notification({
-          message: message,
-          createdAt: Date.now(),
-          userId: pref.userId,
-          catalogue: catalogueTagged
-        });
-        notification.save(function (err) {
-          if(err){
-            callback(err);
-          }else{
-            callback();
-          }
-        });
-      },function (err) {
-        return res.status(200).send({
-          status: 200,
-          exception: null,
-          message: 'Notifications sent'
-        });
+      .find({
+        tags:{
+          $in:tags
+        }
       })
-    });
+      .select('userId')
+      .exec(function (err,prefs) {
+        async.eachSeries(prefs,function (pref,callback) {
+          var notification = new Notification({
+            message: message,
+            createdAt: Date.now(),
+            userId: pref.userId,
+            catalogue: catalogueTagged
+          });
+          notification.save(function (err) {
+            if(err){
+              callback(err);
+            }else{
+              callback();
+            }
+          });
+        },function (err) {
+          return res.status(200).send({
+            status: 200,
+            exception: null,
+            message: 'Notifications sent'
+          });
+        })
+      });
 });
 
 router.get('/get',function (req,res) {
-    Notification
+  Notification
       .find({
         userId:req.query.userId
       })
+      .populate('catalogue')
       .exec(function (err,notifications) {
         if(!err && notifications){
           return res.status(200).send({
@@ -54,6 +55,37 @@ router.get('/get',function (req,res) {
             exception: null,
             message: 'Notifications found',
             notifications:notifications
+          });
+        }else{
+          return res.status(404).send({
+            status: 404,
+            exception: err?err:null,
+            message: 'Notifications not found',
+            notifications:null
+          });
+        }
+      });
+});
+
+router.get('/getUnreadNotifications', function (req,res) {
+  Notification
+      .find({
+        $and: [
+          {
+            userId: req.query.userId
+          },
+          {
+            read: false
+          }
+        ]
+      })
+      .exec(function (err,notifications) {
+        if(!err && notifications){
+          return res.status(200).send({
+            status: 200,
+            exception: null,
+            message: 'Notifications',
+            notifications: notifications.length
           });
         }else{
           return res.status(404).send({
