@@ -98,4 +98,26 @@ router.get('/getUnreadNotifications', function (req,res) {
       });
 });
 
+router.post('/markNotificationRead',function (req,res) {
+  Notification
+      .findById(req.body.notificationId)
+      .exec(function (err,notification) {
+        notification.read = true;
+        notification.save(function (err) {
+          if(!err){
+            return res.status(200).send({
+              status:200,
+              exception:null,
+              message:'NotificationUpdated'
+            });
+          }else{
+            return res.status(400).send({
+              status:400,
+              exception:null,
+              message:'NotificationDidntUpdated'
+            });
+          }
+        });
+      });
+});
 module.exports = router;
